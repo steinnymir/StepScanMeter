@@ -32,7 +32,8 @@ def main():
         prg = StepScanMeterMainApp()
     else:
         prg = widgets.StepScanMainWindow()
-
+    
+    print('showing program')
     prg.show()
 
     try:

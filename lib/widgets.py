@@ -8,9 +8,9 @@ from lib import scan
 import pandas as pd
 
 import sys
-sys.path.append("E:/py_code/Soft-for-TR-MOKE-setup/")
-# import NewPortStagelib
-
+sys.path.append("U:\Dokumente\program\demsarlabprojects\TR-MOKE soft\Soft-for-TR-MOKE-setup")
+import NewPortStagelib
+import USBGPIBlib
 
 class StepScanMainWindow(QW.QMainWindow):
     """ Main application window """
@@ -69,8 +69,17 @@ class StepScanCentralWidget(QW.QWidget):
 
         self.scan_timer = QC.QTimer()
         self.scan_timer.timeout.connect(self.on_scan_timer)
+        self.monitor_timer = QC.QTimer()
+        self.monitor_timer.timeout.connect(self.on_monitor_timer)
+        self.monitor_timer.start(200)
+        
+        
 
-
+        self.instruments = {}
+        self.instruments['lockin'] = USBGPIBlib.USBGPIB()
+        self.instruments['lockin'].connect()
+        self.instruments['stage'] = NewPortStagelib.NewPortStage()
+        self.instruments['stage'].Initilize()
 
     def make_layout(self):
         """ Generate the GUI layout """
@@ -107,6 +116,7 @@ class StepScanCentralWidget(QW.QWidget):
         self.moveStageToButton.clicked.connect(self.move_stage_to)
         self.moveStageToSpinBox = QW.QDoubleSpinBox()
         self.moveStageToSpinBox.setSuffix(' mm')
+        self.moveStageToSpinBox.setRange(-150, 150)
 
         scanStatusLayout.addWidget(QW.QLabel("Position:"),0,0)
         scanStatusLayout.addWidget(self.moveStageToSpinBox,0,1)
@@ -133,7 +143,7 @@ class StepScanCentralWidget(QW.QWidget):
         self.lockin_Y_monitor = QW.QLabel('1,00')
         self.lockin_Y_monitor.setFont(self.monitor_number_font)
 
-        monitorGroupLayout.addWidget(QW.QLabel('Lockin X:'), 2, 0)
+        monitorGroupLayout.addWidget(QW.QLabel('Lockin Y:'), 2, 0)
         monitorGroupLayout.addWidget(self.lockin_Y_monitor, 3, 0, 1, 3)
 
         self.temperature_monitor = QW.QLabel('1,00')
@@ -237,9 +247,18 @@ class StepScanCentralWidget(QW.QWidget):
         print(self.scan.timeScale)
         print(self.scan.stagePositions)
 
+    @QC.pyqtSlot()
+    def on_monitor_timer(self):
+        self.X = self.instruments['lockin'].ReadValue('X')
+        self.Y = self.instruments['lockin'].ReadValue('Y')
+        self.lockin_X_monitor.setText(str(self.X) + 'V')
+        self.lockin_Y_monitor.setText(str(self.Y) + 'V')
+        
+        
+    @QC.pyqtSlot()
     def move_stage_to(self):
         newpos = self.moveStageToSpinBox.value()
-
+        self.instruments['stage'].MoveTo(newpos)
         print(type(newpos))
 
     def start_scan(self):
@@ -269,16 +288,17 @@ class StepScanCentralWidget(QW.QWidget):
 
 
     def read_values(self):
+        
         x = np.random.rand(2)
-        return x[0]-0.5,x[1]-0.5
-
+        #return x[0]-0.5,x[1]-0.5
+        return self.X, self.Y
     def clear_plot(self):
         self.mainPlot.clear()
 
     def refresh_plot(self):
         t = self.scan.currentScan['time']
-        x = self.scan.currentScan['x']
-        y = self.scan.currentScan['y']
+        x = self.scan.currentScan['X']
+        y = self.scan.currentScan['Y']
 
         self.plot = self.mainPlot.plot(t, x, pen=(255, 0, 0))
         self.plot = self.mainPlot.plot(t, y, pen=(0, 255, 0))
