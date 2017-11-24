@@ -39,17 +39,8 @@ class Scan(object):
         self.data = {},
         self.dwellTime = 200
 
-        self.currentScan = {
-                'time': [],
-                'currentStagePosition': None,
-                'x':[],
-                'y': [],
-                'Theta': None,
-                'r': None,
-                'aux1': None,
-                'aux2': None,
-                'temperature': None
-            }
+        self.currentScan = None
+        self.reset_currentScan()
 
 
         self.metadata = {
@@ -86,7 +77,7 @@ class Scan(object):
             'Notes': None,
         }
 
-        self.parameters = [
+        self.parameters = [ # TODO: chanhge to different variables containing dictionaries, then write dict to par translator
             {'name': 'General', 'type': 'group', 'children': [
                 {'name': 'Date', 'type': 'str', 'value': 'today'},
                 {'name': 'Notes', 'type': 'str', 'value': ''},
@@ -131,25 +122,22 @@ class Scan(object):
         self.data[name] = self.currentScan
 
 
-    def reset_current_scan(self):
-        del self.currentScan
-        self.currentScan = pd.DataFrame(
-            {
-                'stagePosition': None,
-                'time': None,
+    def reset_currentScan(self):
+        self.currentScan = {
+                'time': [],
                 'currentStagePosition': None,
-                'x':None,
-                'y': None,
+                'X':[],
+                'Y': [],
                 'Theta': None,
                 'r': None,
                 'aux1': None,
                 'aux2': None,
                 'temperature': None
-            },
-            index = None,
-        )
+            }
 
 
+    def save_scan(self, filename):
+        pass
 
 
 

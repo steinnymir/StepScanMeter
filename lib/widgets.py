@@ -7,6 +7,10 @@ import numpy as np
 from lib import scan
 import pandas as pd
 
+import sys
+sys.path.append("E:/py_code/Soft-for-TR-MOKE-setup/")
+# import NewPortStagelib
+
 
 class StepScanMainWindow(QW.QMainWindow):
     """ Main application window """
@@ -75,13 +79,15 @@ class StepScanCentralWidget(QW.QWidget):
         layoutLeftPanel = QW.QVBoxLayout()
         layoutLeftPanel.setSpacing(10)
 
-
         self.parameterTree = ParameterTree()
         self.parameterTree.setParameters(self.parameters)
 
         layoutLeftPanel.addWidget(QG.QLabel('Scan Parameters:'))
         layoutLeftPanel.addWidget(self.parameterTree,stretch=1)
 
+        self.printTreeButton = QW.QPushButton('print tree')
+        self.printTreeButton.clicked.connect(self.print_parameters)
+        layoutLeftPanel.addWidget(self.printTreeButton)
 
         # ------- DEFINE CENTRAL PANEL -------
         layoutCentralPanel = QW.QGridLayout()
@@ -93,9 +99,21 @@ class StepScanCentralWidget(QW.QWidget):
         layoutCentralPanel.addWidget(self.scanStatusBox,2,0,1,1)
         scanStatusLayout = QW.QGridLayout()
         self.scanStatusBox.setLayout(scanStatusLayout)
-        self.start_button = QW.QPushButton('Start')
+        self.start_button = QW.QPushButton('Scan')
         self.start_button.clicked.connect(self.start_scan)
-        scanStatusLayout.addWidget(self.start_button,0,0)
+        scanStatusLayout.addWidget(self.start_button,0,2,2,2)
+
+        self.moveStageToButton = QW.QPushButton('Move stage')
+        self.moveStageToButton.clicked.connect(self.move_stage_to)
+        self.moveStageToSpinBox = QW.QDoubleSpinBox()
+        self.moveStageToSpinBox.setSuffix(' mm')
+
+        scanStatusLayout.addWidget(QW.QLabel("Position:"),0,0)
+        scanStatusLayout.addWidget(self.moveStageToSpinBox,0,1)
+        scanStatusLayout.addWidget(self.moveStageToButton,1,0,1,2)
+
+
+
 
         # ------- DEFINE RIGHT PANEL -------
         layoutRightPanel = QW.QVBoxLayout()
@@ -105,7 +123,6 @@ class StepScanCentralWidget(QW.QWidget):
         layoutRightPanel.addWidget(self.monitorGroup)
         monitorGroupLayout = QW.QGridLayout()
         self.monitorGroup.setLayout(monitorGroupLayout)
-
 
         self.lockin_X_monitor = QW.QLabel('1,00')
         self.lockin_X_monitor.setFont(self.monitor_number_font)
@@ -193,6 +210,7 @@ class StepScanCentralWidget(QW.QWidget):
 
     @QC.pyqtSlot()
     def set_time_axis(self):
+        """ Uses the values given for the time ranges to define the time scale and corresponding stage positions for the scan."""
         startPoints = []
         steps = []
         for i in range(self.timeRanges):
@@ -215,16 +233,17 @@ class StepScanCentralWidget(QW.QWidget):
             self.scan.stagePositions = stagePositions
 
         else:
-            print('time scale defined is not monotonous! check!')
+            print('time scale defined is not monotonous! check again!!')
         print(self.scan.timeScale)
         print(self.scan.stagePositions)
 
+    def move_stage_to(self):
+        newpos = self.moveStageToSpinBox.value()
+
+        print(type(newpos))
+
     def start_scan(self):
-        self.test_start_scan()
 
-
-
-    def test_start_scan(self):
         print('scan started')
         self.clear_plot()
 
@@ -233,15 +252,17 @@ class StepScanCentralWidget(QW.QWidget):
 
 
     def on_scan_timer(self):
+
         if self.currentPoint < len(self.scan.timeScale):
             value = self.read_values()
             self.scan.currentScan['time'].append(self.scan.timeScale[self.currentPoint])
-            self.scan.currentScan['x'].append(value[0])
-            self.scan.currentScan['y'].append(value[1])
+            self.scan.currentScan['X'].append(value[0])
+            self.scan.currentScan['Y'].append(value[1])
 
             self.currentPoint += 1
         else:
             self.scan_timer.stop()
+            self.store_current_scan()
             print('scan stopped')
 
         self.refresh_plot()
@@ -262,4 +283,12 @@ class StepScanCentralWidget(QW.QWidget):
         self.plot = self.mainPlot.plot(t, x, pen=(255, 0, 0))
         self.plot = self.mainPlot.plot(t, y, pen=(0, 255, 0))
 
-        # self.mainPlot.
+    def store_current_scan(self):
+
+        self.scan.data = pd.DataFrame(self.scan.currentScan)
+        self.scan.reset_currentScan()
+
+
+    @QC.pyqtSlot()
+    def print_parameters(self):
+        print(self.scan.parameters)
