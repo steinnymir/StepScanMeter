@@ -7,10 +7,17 @@ import numpy as np
 from lib import scan
 import pandas as pd
 
+testMode = False
+
 import sys
 sys.path.append("U:\Dokumente\program\demsarlabprojects\TR-MOKE soft\Soft-for-TR-MOKE-setup")
-import NewPortStagelib
-import USBGPIBlib
+try:
+    import NewPortStagelib
+    import USBGPIBlib
+except ImportError:
+    print('Couldnt import instruments: Test mode activated')
+    testMode = True
+
 
 class StepScanMainWindow(QW.QMainWindow):
     """ Main application window """
@@ -76,10 +83,12 @@ class StepScanCentralWidget(QW.QWidget):
         
 
         self.instruments = {}
-        self.instruments['lockin'] = USBGPIBlib.USBGPIB()
-        self.instruments['lockin'].connect()
-        self.instruments['stage'] = NewPortStagelib.NewPortStage()
-        self.instruments['stage'].Initilize()
+        if not testMode:
+            self.instruments['lockin'] = USBGPIBlib.USBGPIB()
+            self.instruments['lockin'].connect()
+            self.instruments['stage'] = NewPortStagelib.NewPortStage()
+            self.instruments['stage'].Initilize()
+
 
     def make_layout(self):
         """ Generate the GUI layout """
@@ -249,8 +258,12 @@ class StepScanCentralWidget(QW.QWidget):
 
     @QC.pyqtSlot()
     def on_monitor_timer(self):
-        self.X = self.instruments['lockin'].ReadValue('X')
-        self.Y = self.instruments['lockin'].ReadValue('Y')
+        if testMode:
+            self.X = np.random.rand(1)[0]*0.001
+            self.Y = np.random.rand(1)[0]*0.001
+        else:
+            self.X = self.instruments['lockin'].ReadValue('X')
+            self.Y = self.instruments['lockin'].ReadValue('Y')
         self.lockin_X_monitor.setText(str(self.X) + 'V')
         self.lockin_Y_monitor.setText(str(self.Y) + 'V')
         
@@ -258,8 +271,11 @@ class StepScanCentralWidget(QW.QWidget):
     @QC.pyqtSlot()
     def move_stage_to(self):
         newpos = self.moveStageToSpinBox.value()
-        self.instruments['stage'].MoveTo(newpos)
-        print(type(newpos))
+        if testMode:
+            print('Stage moved to: {}'.format(type(newpos)))
+        else:
+            self.instruments['stage'].MoveTo(newpos)
+
 
     def start_scan(self):
 
@@ -288,10 +304,13 @@ class StepScanCentralWidget(QW.QWidget):
 
 
     def read_values(self):
-        
-        x = np.random.rand(2)
-        #return x[0]-0.5,x[1]-0.5
-        return self.X, self.Y
+        if testMode:
+            x = np.random.rand(2)
+            return x[0]-0.5,x[1]-0.5
+        else:
+            return self.X, self.Y
+
+
     def clear_plot(self):
         self.mainPlot.clear()
 
