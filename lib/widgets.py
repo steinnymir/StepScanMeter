@@ -1,6 +1,6 @@
 import pyqtgraph as PG
 import qdarkstyle
-from PyQt5 import QtGui as QG, QtWidgets as QW, QtCore as QC
+from PyQt5 import QtGui, QtWidgets, QtCore
 from pyqtgraph.parametertree import Parameter, ParameterTree
 from lib import gfs
 import numpy as np
@@ -19,7 +19,7 @@ except ImportError:
     testMode = True
 
 
-class StepScanMainWindow(QW.QMainWindow):
+class StepScanMainWindow(QtWidgets.QMainWindow):
     """ Main application window """
 
     def __init__(self):
@@ -45,7 +45,7 @@ class StepScanMainWindow(QW.QMainWindow):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
 
-        layout = QG.QGridLayout()  # create a grid for subWidgets
+        layout = QtGui.QGridLayout()  # create a grid for subWidgets
         layout.setSpacing(10)
         self.setLayout(layout)
 
@@ -59,7 +59,7 @@ class StepScanMainWindow(QW.QMainWindow):
 
 
 
-class StepScanCentralWidget(QW.QWidget):
+class StepScanCentralWidget(QtWidgets.QWidget):
     """ Main widget for the step scan measuring software """
 
     def __init__(self):
@@ -74,9 +74,9 @@ class StepScanCentralWidget(QW.QWidget):
         self.make_layout()
         self.show()
 
-        self.scan_timer = QC.QTimer()
+        self.scan_timer = QtCore.QTimer()
         self.scan_timer.timeout.connect(self.on_scan_timer)
-        self.monitor_timer = QC.QTimer()
+        self.monitor_timer = QtCore.QTimer()
         self.monitor_timer.timeout.connect(self.on_monitor_timer)
         self.monitor_timer.start(200)
         
@@ -88,46 +88,48 @@ class StepScanCentralWidget(QW.QWidget):
             self.instruments['lockin'].connect()
             self.instruments['stage'] = NewPortStagelib.NewPortStage()
             self.instruments['stage'].Initilize()
+            self.instruments['stage'].Initilize()
+            self.instruments['stage'].Initilize()
 
 
     def make_layout(self):
         """ Generate the GUI layout """
 
         # ------- DEFINE LEFT PANEL -------
-        layoutLeftPanel = QW.QVBoxLayout()
+        layoutLeftPanel = QtWidgets.QVBoxLayout()
         layoutLeftPanel.setSpacing(10)
 
         self.parameterTree = ParameterTree()
         self.parameterTree.setParameters(self.parameters)
 
-        layoutLeftPanel.addWidget(QG.QLabel('Scan Parameters:'))
+        layoutLeftPanel.addWidget(QtGui.QLabel('Scan Parameters:'))
         layoutLeftPanel.addWidget(self.parameterTree,stretch=1)
 
-        self.printTreeButton = QW.QPushButton('print tree')
+        self.printTreeButton = QtWidgets.QPushButton('print tree')
         self.printTreeButton.clicked.connect(self.print_parameters)
         layoutLeftPanel.addWidget(self.printTreeButton)
 
         # ------- DEFINE CENTRAL PANEL -------
-        layoutCentralPanel = QW.QGridLayout()
+        layoutCentralPanel = QtWidgets.QGridLayout()
         layoutCentralPanel.setSpacing(10)
 
         self.mainPlot = PG.PlotWidget()
         layoutCentralPanel.addWidget(self.mainPlot,0,0,2,1)
-        self.scanStatusBox = QW.QGroupBox('Scan Status:')
+        self.scanStatusBox = QtWidgets.QGroupBox('Scan Status:')
         layoutCentralPanel.addWidget(self.scanStatusBox,2,0,1,1)
-        scanStatusLayout = QW.QGridLayout()
+        scanStatusLayout = QtWidgets.QGridLayout()
         self.scanStatusBox.setLayout(scanStatusLayout)
-        self.start_button = QW.QPushButton('Scan')
+        self.start_button = QtWidgets.QPushButton('Scan')
         self.start_button.clicked.connect(self.start_scan)
         scanStatusLayout.addWidget(self.start_button,0,2,2,2)
 
-        self.moveStageToButton = QW.QPushButton('Move stage')
+        self.moveStageToButton = QtWidgets.QPushButton('Move stage')
         self.moveStageToButton.clicked.connect(self.move_stage_to)
-        self.moveStageToSpinBox = QW.QDoubleSpinBox()
+        self.moveStageToSpinBox = QtWidgets.QDoubleSpinBox()
         self.moveStageToSpinBox.setSuffix(' mm')
         self.moveStageToSpinBox.setRange(-150, 150)
 
-        scanStatusLayout.addWidget(QW.QLabel("Position:"),0,0)
+        scanStatusLayout.addWidget(QtWidgets.QLabel("Position:"), 0, 0)
         scanStatusLayout.addWidget(self.moveStageToSpinBox,0,1)
         scanStatusLayout.addWidget(self.moveStageToButton,1,0,1,2)
 
@@ -135,42 +137,42 @@ class StepScanCentralWidget(QW.QWidget):
 
 
         # ------- DEFINE RIGHT PANEL -------
-        layoutRightPanel = QW.QVBoxLayout()
+        layoutRightPanel = QtWidgets.QVBoxLayout()
         layoutRightPanel.setSpacing(10)
 
-        self.monitorGroup = QW.QGroupBox('Instrument Monitor')
+        self.monitorGroup = QtWidgets.QGroupBox('Instrument Monitor')
         layoutRightPanel.addWidget(self.monitorGroup)
-        monitorGroupLayout = QW.QGridLayout()
+        monitorGroupLayout = QtWidgets.QGridLayout()
         self.monitorGroup.setLayout(monitorGroupLayout)
 
-        self.lockin_X_monitor = QW.QLabel('1,00')
+        self.lockin_X_monitor = QtWidgets.QLabel('1,00')
         self.lockin_X_monitor.setFont(self.monitor_number_font)
-        lockin_X_monitor_box = QW.QLabel('Lockin X:')
+        lockin_X_monitor_box = QtWidgets.QLabel('Lockin X:')
         monitorGroupLayout.addWidget(lockin_X_monitor_box, 0, 0)
         monitorGroupLayout.addWidget(self.lockin_X_monitor, 1, 0, 1, 3)
 
-        self.lockin_Y_monitor = QW.QLabel('1,00')
+        self.lockin_Y_monitor = QtWidgets.QLabel('1,00')
         self.lockin_Y_monitor.setFont(self.monitor_number_font)
 
-        monitorGroupLayout.addWidget(QW.QLabel('Lockin Y:'), 2, 0)
+        monitorGroupLayout.addWidget(QtWidgets.QLabel('Lockin Y:'), 2, 0)
         monitorGroupLayout.addWidget(self.lockin_Y_monitor, 3, 0, 1, 3)
 
-        self.temperature_monitor = QW.QLabel('1,00')
+        self.temperature_monitor = QtWidgets.QLabel('1,00')
         self.temperature_monitor.setFont(self.monitor_number_font)
-        monitorGroupLayout.addWidget(QW.QLabel('Temperature:'), 4, 0)
+        monitorGroupLayout.addWidget(QtWidgets.QLabel('Temperature:'), 4, 0)
         monitorGroupLayout.addWidget(self.temperature_monitor, 5, 0, 1, 3)
 
-        self.setTimeAxisGroup = QW.QGroupBox('Set Time Axis')
-        sizePolicy = QW.QSizePolicy(QW.QSizePolicy.Minimum, QW.QSizePolicy.Minimum)
+        self.setTimeAxisGroup = QtWidgets.QGroupBox('Set Time Axis')
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         self.setTimeAxisGroup.setSizePolicy(sizePolicy)
         layoutRightPanel.addWidget(self.setTimeAxisGroup)
-        setTimeAxisGroupLayout = QW.QGridLayout()
+        setTimeAxisGroupLayout = QtWidgets.QGridLayout()
         self.setTimeAxisGroup.setLayout(setTimeAxisGroupLayout)
 
-        setTimeAxisGroupLayout.addWidget(QW.QLabel('from:'),0,0)
-        setTimeAxisGroupLayout.addWidget(QW.QLabel('Step size:'),0,1)
+        setTimeAxisGroupLayout.addWidget(QtWidgets.QLabel('from:'), 0, 0)
+        setTimeAxisGroupLayout.addWidget(QtWidgets.QLabel('Step size:'), 0, 1)
 
         v_position = 0
         self.timeRanges = 5
@@ -179,15 +181,15 @@ class StepScanCentralWidget(QW.QWidget):
         for i in range(self.timeRanges):
             v_position = i+1
             name_from = 'timeRange' + str(i) + '_from'
-            value = QW.QDoubleSpinBox()
-            setattr(self, name_from, QW.QDoubleSpinBox())
+            value = QtWidgets.QDoubleSpinBox()
+            setattr(self, name_from, QtWidgets.QDoubleSpinBox())
             getattr(self, name_from).setRange(-1000, 1000)
             getattr(self, name_from).setSuffix(' ps')
             getattr(self, name_from).setSingleStep(0.01)
             getattr(self, name_from).setValue(init_ranges[i])
             setTimeAxisGroupLayout.addWidget(getattr(self, name_from), v_position, 0)
             name_step = 'timeRange' + str(i) + '_step'
-            setattr(self, name_step, QW.QDoubleSpinBox())
+            setattr(self, name_step, QtWidgets.QDoubleSpinBox())
             getattr(self, name_step).setRange(0, 100)
             getattr(self, name_step).setSuffix(' ps')
             getattr(self, name_step).setSingleStep(0.01)
@@ -195,13 +197,13 @@ class StepScanCentralWidget(QW.QWidget):
 
             setTimeAxisGroupLayout.addWidget(getattr(self, name_step), v_position, 1)
 
-        self.setTimeAxisApply = QW.QPushButton('Apply')
+        self.setTimeAxisApply = QtWidgets.QPushButton('Apply')
         self.setTimeAxisApply.clicked.connect(self.set_time_axis)
         setTimeAxisGroupLayout.addWidget(self.setTimeAxisApply, v_position+1, 0, 1, 2)
 
 
 
-        mainLayout = QW.QHBoxLayout()  # create a grid for subWidgets
+        mainLayout = QtWidgets.QHBoxLayout()  # create a grid for subWidgets
         mainLayout.setSpacing(10)
         mainLayout.addLayout(layoutLeftPanel)
         mainLayout.addLayout(layoutCentralPanel)
@@ -212,22 +214,22 @@ class StepScanCentralWidget(QW.QWidget):
 
     def setup_font_styles(self):
         """ Give settings for fonts to use in widget"""
-        self.title_font = QG.QFont()
+        self.title_font = QtGui.QFont()
         self.title_font.setBold(True)
         self.title_font.setPixelSize(15)
 
-        self.subtitle_font = QG.QFont()
+        self.subtitle_font = QtGui.QFont()
         self.subtitle_font.setPixelSize(12)
         self.subtitle_font.setBold(True)
 
-        self.text_font = QG.QFont()
+        self.text_font = QtGui.QFont()
         self.text_font.setPixelSize(10)
 
-        self.monitor_number_font = QG.QFont()
+        self.monitor_number_font = QtGui.QFont()
         self.monitor_number_font.setPixelSize(12)
         self.monitor_number_font.setBold(True)
 
-    @QC.pyqtSlot()
+    @QtCore.pyqtSlot()
     def set_time_axis(self):
         """ Uses the values given for the time ranges to define the time scale and corresponding stage positions for the scan."""
         startPoints = []
@@ -256,7 +258,7 @@ class StepScanCentralWidget(QW.QWidget):
         print(self.scan.timeScale)
         print(self.scan.stagePositions)
 
-    @QC.pyqtSlot()
+    @QtCore.pyqtSlot()
     def on_monitor_timer(self):
         if testMode:
             self.X = np.random.rand(1)[0]*0.001
@@ -268,7 +270,7 @@ class StepScanCentralWidget(QW.QWidget):
         self.lockin_Y_monitor.setText(str(self.Y) + 'V')
         
         
-    @QC.pyqtSlot()
+    @QtCore.pyqtSlot()
     def move_stage_to(self):
         newpos = self.moveStageToSpinBox.value()
         if testMode:
@@ -328,6 +330,6 @@ class StepScanCentralWidget(QW.QWidget):
         self.scan.reset_currentScan()
 
 
-    @QC.pyqtSlot()
+    @QtCore.pyqtSlot()
     def print_parameters(self):
         print(self.scan.parameters)
