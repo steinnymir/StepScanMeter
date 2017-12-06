@@ -65,12 +65,6 @@ class Backend(QtCore.QObject):
             self.mainClock.stop()
         self.mainClock.start(clockTime)
 
-    def on_mainClock(self):
-        # print('running')
-        for name, instrument in self.instruments.items():
-
-
-
     def stop_mainClock(self):
         pass
 

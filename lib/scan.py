@@ -16,32 +16,26 @@ def main():
 
 
 class Scan(object):
-    """ Creates an object(OBJ) that contains data and metadata of a single time resolved scan.
+    """ Creates an object that contains data and metadata of a single time resolved scan.
     This is used to store all data and metadata while performing a pump-probe measurement.
-
-
-    Data is contained in:
-    - raw_time: raw measured time scale
-    - raw_trace: measured data points
-    - time: time trace modified by analysis functions applied on this object
-    - trace: data modified by analysis functions applied on this object.
-
-    Metadata entries are described in __init__
-
 
     """
 
     def __init__(self):
         """
         """
-        self.timeScale = [],
+        # data
+        self.timeScale = []
         self.stagePositions = []
-        self.data = {},
-        self.dwellTime = 200
+        self.data = {}
+
+        #scan settings
+        self.dwellTime = 1
 
         self.currentScan = None
-        self.reset_currentScan()
+        self.currentScanAverages = {}
 
+        self.reset_currentScan()
 
         self.metadata = {
             'date': None,
@@ -76,8 +70,8 @@ class Scan(object):
             'temperature': None,
             'Notes': None,
         }
-
-        self.parameters = [ # TODO: chanhge to different variables containing dictionaries, then write dict to par translator
+        # TODO: chanhge to different variables containing dictionaries, then write dict to par translator
+        self.parameters = [
             {'name': 'General', 'type': 'group', 'children': [
                 {'name': 'Date', 'type': 'str', 'value': 'today'},
                 {'name': 'Notes', 'type': 'str', 'value': ''},
@@ -110,17 +104,13 @@ class Scan(object):
             ]}
         ]
 
-    def init_scan(self):
-        self.currentScan['stagePosition']
 
     def build_stage_position(self):
         for i in self.timeScale:
             self.stagePoisitions[i] = self.timeScale[i] * 299.792458
 
     def store_scan(self, name):
-
         self.data[name] = self.currentScan
-
 
     def reset_currentScan(self):
         self.currentScan = {
@@ -135,9 +125,6 @@ class Scan(object):
                 'temperature': None
             }
 
-
-    def save_scan(self, filename):
-        pass
 
 
 
