@@ -5,10 +5,11 @@ Created on Nov 22 09:57:29 2017
 @author: S.Y. Agustsson
 """
 
-# from lib import genericfunctions as gfs
 import numpy as np
 import pandas as pd
-
+import datetime
+import os
+import h5py
 
 def main():
 
@@ -22,20 +23,17 @@ class Scan(object):
     """
 
     def __init__(self):
-        """
-        """
+
         # data
         self.timeScale = []
         self.stagePositions = []
-        self.data = {}
+        self.data = {'avg':pd.DataFrame()}
 
         #scan settings
-        self.dwellTime = 1
+        self.dwellTime = 0.01
 
-        self.currentScan = None
-        self.currentScanAverages = {}
-
-        self.reset_currentScan()
+        self.saveDirectory = 'E:/data'
+        self.dateTime = str(datetime.datetime.now()).split('.')[0].split(' ')
 
         self.metadata = {
             'date': None,
@@ -104,26 +102,49 @@ class Scan(object):
             ]}
         ]
 
-
     def build_stage_position(self):
         for i in self.timeScale:
             self.stagePoisitions[i] = self.timeScale[i] * 299.792458
 
-    def store_scan(self, name):
-        self.data[name] = self.currentScan
+    def get_save_directory(self,dataType):
+        saveDir = '{baseDir}/{material}/{dataType}/{date}/'.format(baseDir=self.saveDirectory,
+                                                        material='RuCl3',
+                                                        date=self.dateTime[0],
+                                                        dataType=dataType,
+                                                        )
+        if not os.path.isdir(saveDir):
+            os.makedirs(saveDir)
+        return saveDir
 
-    def reset_currentScan(self):
-        self.currentScan = {
-                'time': [],
-                'currentStagePosition': None,
-                'X':[],
-                'Y': [],
-                'Theta': None,
-                'r': None,
-                'aux1': None,
-                'aux2': None,
-                'temperature': None
-            }
+    def save_to_HDF5(self):
+        """ Saves data contained in scan to an HDF5 dataframe."""
+        saveDir = self.get_save_directory('HDF5')
+        print('Saving scan as .HDF5 under {}'.format(saveDir))
+        saveName = saveDir + 'test'
+
+        f = h5py.File(saveName,'w')
+        dataGroup = f.create_group('data')
+        metadataGroup = f.create_group('metadata')
+
+        for key, value in self.data.items():
+            dset = dataGroup.create_dataset(str(key),data=value)
+
+
+    def save_to_csv(self):
+        """ Saves data contained in scan to a .csv file."""
+
+        saveDir = self.get_save_directory('CSV')
+        print('Saving scan as .CSV under {}'.format(saveDir))
+        saveName = saveDir + 'test/'
+        for key, value in self.data.items():
+            try:
+                f = open('{0}{1}.csv'.format(saveName,key),'w')
+            except FileNotFoundError:
+                os.makedirs(saveName)
+                f = open('{0}{1}.csv'.format(saveName,key),'w')
+
+            value.to_csv(f,mode='w')
+            f.close()
 
 
 

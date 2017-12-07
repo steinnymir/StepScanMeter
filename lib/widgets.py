@@ -129,8 +129,11 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         self.scanStatusBox.setLayout(scanStatusLayout)
         self.startstop_button = QtWidgets.QPushButton('Start Scan')
         self.startstop_button.clicked.connect(self.startstop_scan)
-        scanStatusLayout.addWidget(self.startstop_button, 0, 2, 2, 2)
+        scanStatusLayout.addWidget(self.startstop_button, 0, 2, 1, 2)
 
+        self.save_button = QtWidgets.QPushButton('save')
+        scanStatusLayout.addWidget(self.save_button,1,3,1,1)
+        self.save_button.clicked.connect(self.save_to_HDF5)
         self.n_of_averages_box = QtWidgets.QSpinBox()
         # self.n_of_averages_box.valueChanged.connect(self.set_n_of_averages)
         self.n_of_averages_box.setValue(self.n_of_averages)
@@ -138,10 +141,13 @@ class StepScanCentralWidget(QtWidgets.QWidget):
 
 
         self.moveStageToButton = QtWidgets.QPushButton('Move stage')
-        self.moveStageToButton.clicked.connect(self.move_stage_to)
         self.moveStageToSpinBox = QtWidgets.QDoubleSpinBox()
         self.moveStageToSpinBox.setSuffix(' mm')
         self.moveStageToSpinBox.setRange(-150, 150)
+        self.moveStageToSpinBox.setValue(0)
+        self.moveStageToSpinBox.setSingleStep(0.01)
+        self.moveStageToButton.clicked.connect(self.move_stage_to_spinbox_value)
+
 
         scanStatusLayout.addWidget(QtWidgets.QLabel("Position:"), 0, 0)
         scanStatusLayout.addWidget(self.moveStageToSpinBox,0,1)
@@ -284,12 +290,12 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         self.lockin_Y_monitor.setText('{:.3E} V'.format(self.Y))
 
     @QtCore.pyqtSlot()
-    def move_stage_to(self):
-        newpos = self.moveStageToSpinBox.value()
+    def move_stage_to_spinbox_value(self):
+        newPos = self.moveStageToSpinBox.value()
         if testMode:
-            print('Stage moved to: {}'.format(type(newpos)))
+            print('Stage moved to: {}'.format(newPos))
         else:
-            self.instruments['stage'].MoveTo(newpos)
+            self.instruments['stage'].MoveTo(newPos)
 
     @QtCore.pyqtSlot()
     def startstop_scan(self):
@@ -304,9 +310,11 @@ class StepScanCentralWidget(QtWidgets.QWidget):
             self.make_single_scan()
             self.scanning = True
 
+    @QtCore.pyqtSlot()
     def make_single_scan(self):
         """ performs a single scan with the given stagePositions"""
         self.scan_thread = QtCore.QThread()
+        print('scanning for {0} with {1} dwelltime'.format(self.lockinParameters,self.scan.dwellTime))
         self.w = StepScanWorker(self.scan.stagePositions, self.lockinParameters, self.scan.dwellTime)
         self.w.finished[pd.DataFrame].connect(self.on_finished)
         self.w.newData.connect(self.append_new_data)
@@ -314,14 +322,14 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         self.scan_thread.started.connect(self.w.work)
         self.scan_thread.start()
 
+    @QtCore.pyqtSlot(dict)
     def on_finished(self,dict):
-        """ Prints the threads's output and starts a new one untill total number of averages is reached"""
+        """ Prints the threads's output and starts a new one until total number of averages is reached"""
         print(dict)
         for key, item in dict.items():
             self.scan.data[key][self.scanNumber] = item
-            self.scan.data[key]['avg'] = self.scan.data[key].mean(axis=1)
-        # self.scan.data[str(self.scanNumber)] = dict
-        # self.scan.reset_currentScan()
+            self.scan.data['avg'][key] = self.scan.data[key].mean(axis=1)
+
         self.scanNumber += 1
         for key in self.plotParameters:
             self.plotData[key][self.scanNumber] = []
@@ -333,6 +341,7 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         else:
             self.make_single_scan()
 
+    @QtCore.pyqtSlot()
     def stop_scan_after_current(self):
         print('scan will stop after current run.')
         self.n_of_averages = self.scanNumber
@@ -343,41 +352,20 @@ class StepScanCentralWidget(QtWidgets.QWidget):
             self.plotData[key][self.scanNumber].append(value[key])
         self.plot_parameters()
 
-        # self.plotData[]
-        # self.scan.currentScan['time']
-        # self.scan.currentScan['X'].append(value['X'])
-        # self.scan.currentScan['Y'].append(value['Y'])
-        # self.refresh_plot()
-
+    def save_to_HDF5(self):
+        self.scan.save_to_HDF5()
+        self.scan.save_to_csv()
 
     def plot_parameters(self):
+
         for key in self.plotParameters:
             y = self.plotData[key][self.scanNumber]
             x = self.scan.timeScale[0:len(y)]
             self.mainPlot.plot(x, y , pen=(125, 0, 0))
 
+
     def clear_plot(self):
         self.mainPlot.clear()
-
-    def refresh_plot(self):
-        self.mainPlot.clear()
-
-        t = self.scan.currentScan['time']
-        x = self.scan.currentScan['X']
-        y = self.scan.currentScan['Y']
-
-
-        self.plot = self.mainPlot.plot(t, x, pen=(125, 0, 0))
-        self.plot = self.mainPlot.plot(t, y, pen=(0, 125, 0))
-
-        try:
-            xa = list(self.scan.data['X']['avg'])
-            ya = list(self.scan.data['Y']['avg'])
-            self.plot = self.mainPlot.plot(t, xa, pen=(255, 0, 0))
-            self.plot = self.mainPlot.plot(t, ya, pen=(0, 255, 0))
-        except:
-            pass
-
 
     @QtCore.pyqtSlot()
     def print_parameters(self):
@@ -386,11 +374,12 @@ class StepScanCentralWidget(QtWidgets.QWidget):
 
 
 class StepScanWorker(QtCore.QObject):
+    """ Object that performs a single scan. It is intended to be transfered to a new thread."""
 
+    # Signals:
     finished = QtCore.pyqtSignal(dict)
     newData = QtCore.pyqtSignal(int, dict)
     scanning = QtCore.pyqtSignal(bool)
-
 
     def __init__(self, stagePositions, lockinParameters, dwelltime):
         super().__init__()
@@ -400,23 +389,20 @@ class StepScanWorker(QtCore.QObject):
         self.data = {}
         for parameter in self.lockinParameters:
             self.data[parameter] = []
-            # np.zeros((len(self.stagePositions),len(self.lockinParameters)))
-
 
     def work(self):
         print('worker scanning')
         for i in range(len(self.stagePositions)):
 
-            # self.move_stage_to(self.stagePositions[i])
+            # self.move_stage_to_spinbox_value(self.stagePositions[i])
 
             newdataDict = self.read_lockin()
-            print(newdataDict)
+            # print(newdataDict)
             self.newData.emit(i, newdataDict)
             for parameter, value in newdataDict.items():
                 self.data[parameter].append(value)
-
+            print(self.dwelltime)
             time.sleep(self.dwelltime)
-
         self.finished.emit(self.data)
 
 
