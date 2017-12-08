@@ -108,11 +108,18 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         layoutLeftPanel = QtWidgets.QVBoxLayout()
         layoutLeftPanel.setSpacing(10)
 
+
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+
+
         self.parameterTree = ParameterTree()
         self.parameterTree.setParameters(self.parameters)
+        self.parameterTree.setSizePolicy(sizePolicy)
 
         layoutLeftPanel.addWidget(QtGui.QLabel('StepScan Parameters:'))
-        layoutLeftPanel.addWidget(self.parameterTree,stretch=1)
+        layoutLeftPanel.addWidget(self.parameterTree)
 
         self.printTreeButton = QtWidgets.QPushButton('print tree')
         self.printTreeButton.clicked.connect(self.print_parameters)
@@ -122,11 +129,19 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         layoutCentralPanel = QtWidgets.QGridLayout()
         layoutCentralPanel.setSpacing(10)
 
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+
+
+
         self.mainPlot = PG.PlotWidget()
         layoutCentralPanel.addWidget(self.mainPlot,0,0,2,1)
+        self.mainPlot.setSizePolicy(sizePolicy)
         self.scanStatusBox = QtWidgets.QGroupBox('StepScan Status:')
         layoutCentralPanel.addWidget(self.scanStatusBox,2,0,1,1)
         scanStatusLayout = QtWidgets.QGridLayout()
+        self.scanStatusBox.setSizePolicy(sizePolicy)
         self.scanStatusBox.setLayout(scanStatusLayout)
         self.startstop_button = QtWidgets.QPushButton('Start StepScan')
         self.startstop_button.clicked.connect(self.startstop_scan)
