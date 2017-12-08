@@ -3,7 +3,7 @@ from PyQt5 import QtWidgets as qw, QtCore as qc, uic
 import pyqtgraph as pg
 
 
-from lib import scan
+from lib import stepscan
 from lib import widgets
 import pyqtgraph as qg
 
@@ -49,7 +49,7 @@ class StepScanMeterMainApp(qw.QMainWindow, Ui_MainWindow):
         super(StepScanMeterMainApp, self).__init__()
 
         self.setupUi(self)
-        # self.scan = scan.Scan()
+        # self.scan = scan.StepScan()
 
         # self.tree_parameters = pg.DataTreeWidget(data=scan.metadata)
         # self.parameters_tree = qg.parametertree.Parameter.create(

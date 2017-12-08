@@ -4,16 +4,15 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 from pyqtgraph.parametertree import Parameter, ParameterTree
 from lib import gfs
 import numpy as np
-from lib import scan
+from lib import stepscan
 import pandas as pd
-
-testMode = False
 
 import sys
 sys.path.append("U:\Dokumente\program\demsarlabprojects\TR-MOKE soft\Soft-for-TR-MOKE-setup")
 try:
     import NewPortStagelib
     import USBGPIBlib
+    testMode = False
 except ImportError:
     print('Couldnt import instruments: Test mode activated')
     testMode = True
@@ -26,7 +25,7 @@ class StepScanMainWindow(QtWidgets.QMainWindow):
         """Initialize by setting window title, size and graphic options"""
         super().__init__()
 
-        self.title = 'Step Scan Meter'
+        self.title = 'Step StepScan Meter'
         self.left = 300
         self.top = 100
         self.width = 1200
@@ -65,7 +64,7 @@ class StepScanCentralWidget(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.title = 'centralWidget'
-        self.scan = scan.Scan() # this will contain all data!
+        self.scan = stepscan.StepScan() # this will contain all data!
 
         self.parameters = Parameter.create(name='params', type='group', children=self.scan.parameters)
         # self.scan_thread = QtCore.QThread()
@@ -74,10 +73,12 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         self.scanning = False
         self.lockinParameters = ['X','Y']
         self.plotParameters = self.lockinParameters
-        self.plotData = {}
-        for key in self.plotParameters:
-            self.plotData[key]= {0: []}
-
+        self.plotData = {'avg': pd.DataFrame()}
+        self.plotPen = {'Xa':(255,0,0),
+                        'Ya':(0,255,0),
+                        'X':(75,0,0),
+                        'Y':(0,75,0),
+                        }
 
         """ Generate GUI layout """
         self.setup_font_styles()
@@ -110,7 +111,7 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         self.parameterTree = ParameterTree()
         self.parameterTree.setParameters(self.parameters)
 
-        layoutLeftPanel.addWidget(QtGui.QLabel('Scan Parameters:'))
+        layoutLeftPanel.addWidget(QtGui.QLabel('StepScan Parameters:'))
         layoutLeftPanel.addWidget(self.parameterTree,stretch=1)
 
         self.printTreeButton = QtWidgets.QPushButton('print tree')
@@ -123,11 +124,11 @@ class StepScanCentralWidget(QtWidgets.QWidget):
 
         self.mainPlot = PG.PlotWidget()
         layoutCentralPanel.addWidget(self.mainPlot,0,0,2,1)
-        self.scanStatusBox = QtWidgets.QGroupBox('Scan Status:')
+        self.scanStatusBox = QtWidgets.QGroupBox('StepScan Status:')
         layoutCentralPanel.addWidget(self.scanStatusBox,2,0,1,1)
         scanStatusLayout = QtWidgets.QGridLayout()
         self.scanStatusBox.setLayout(scanStatusLayout)
-        self.startstop_button = QtWidgets.QPushButton('Start Scan')
+        self.startstop_button = QtWidgets.QPushButton('Start StepScan')
         self.startstop_button.clicked.connect(self.startstop_scan)
         scanStatusLayout.addWidget(self.startstop_button, 0, 2, 1, 2)
 
@@ -138,7 +139,6 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         # self.n_of_averages_box.valueChanged.connect(self.set_n_of_averages)
         self.n_of_averages_box.setValue(self.n_of_averages)
         scanStatusLayout.addWidget(self.n_of_averages_box,1,2,2,2)
-
 
         self.moveStageToButton = QtWidgets.QPushButton('Move stage')
         self.moveStageToSpinBox = QtWidgets.QDoubleSpinBox()
@@ -192,8 +192,8 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         setTimeAxisGroupLayout.addWidget(QtWidgets.QLabel('Step size:'), 0, 1)
 
         v_position = 0
-        self.timeRanges = 2
-        init_steps = [0.2, 0.2, 0.05, 0.2, 0.5, 2, 5, 10]
+        self.timeRanges = 3
+        init_steps = [0.05, 0.05, 0.1, 0.2, 0.5, 2, 5, 10]
         init_ranges = [-1, 0, 1, 3, 10, 50, 100, 200, 500]
         for i in range(self.timeRanges):
             v_position = i+1
@@ -227,7 +227,6 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         mainLayout.addLayout(layoutRightPanel)
 
         self.setLayout(mainLayout)
-
 
     def setup_font_styles(self):
         """ Give settings for fonts to use in widget"""
@@ -276,7 +275,7 @@ class StepScanCentralWidget(QtWidgets.QWidget):
 
         else:
             print('time scale defined is not monotonous! check again!!')
-        print('Scan contains {0} points, ranging from {1} to {2} ps.'.format(len(self.scan.timeScale),self.scan.timeScale[0],self.scan.timeScale[-1]))
+        print('StepScan contains {0} points, ranging from {1} to {2} ps.'.format(len(self.scan.timeScale),self.scan.timeScale[0],self.scan.timeScale[-1]))
 
     @QtCore.pyqtSlot()
     def on_monitor_timer(self):
@@ -306,6 +305,7 @@ class StepScanCentralWidget(QtWidgets.QWidget):
             print('scan started')
             for parameter in self.lockinParameters:
                 self.scan.data[parameter] = pd.DataFrame(np.zeros(len(self.scan.timeScale)),columns=['avg'], index = self.scan.timeScale)
+            self.plotData['avg'] = pd.DataFrame(np.zeros(len(self.scan.timeScale)),columns=['avg'], index = self.scan.timeScale)
             self.scanNumber = 0
             self.make_single_scan()
             self.scanning = True
@@ -313,9 +313,13 @@ class StepScanCentralWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def make_single_scan(self):
         """ performs a single scan with the given stagePositions"""
+        for parameter in self.plotParameters:
+            self.plotData[parameter] = {self.scanNumber: []}
+
+
         self.scan_thread = QtCore.QThread()
-        print('scanning for {0} with {1} dwelltime'.format(self.lockinParameters,self.scan.dwellTime))
-        self.w = StepScanWorker(self.scan.stagePositions, self.lockinParameters, self.scan.dwellTime)
+        print('scanning for {0} with {1} dwelltime'.format(self.lockinParameters,self.scan.settings_lockIn['dwellTime']))
+        self.w = StepScanWorker(self.scan.stagePositions, self.lockinParameters, self.scan.settings_lockIn['dwellTime'])
         self.w.finished[pd.DataFrame].connect(self.on_finished)
         self.w.newData.connect(self.append_new_data)
         self.w.moveToThread(self.scan_thread)
@@ -325,14 +329,23 @@ class StepScanCentralWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot(dict)
     def on_finished(self,dict):
         """ Prints the threads's output and starts a new one until total number of averages is reached"""
-        print(dict)
+        # print(dict)
+        print('average n {}'.format(self.scanNumber))
+        time.sleep(1)
+
         for key, item in dict.items():
             self.scan.data[key][self.scanNumber] = item
             self.scan.data['avg'][key] = self.scan.data[key].mean(axis=1)
-
+        try:
+            self.clear_plot()
+            for key in self.plotParameters:
+                ya = self.scan.data['avg'][key]
+                xa = self.scan.timeScale
+                pen = self.plotPen['{}a'.format(key)]
+                self.mainPlot.plot(xa, ya, pen=pen)
+        except:
+            pass
         self.scanNumber += 1
-        for key in self.plotParameters:
-            self.plotData[key][self.scanNumber] = []
         if self.scanNumber >= self.n_of_averages:
             print('done scanning')
             for key, value in self.scan.data.items():
@@ -347,23 +360,30 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         self.n_of_averages = self.scanNumber
         self.n_of_averages_box.setValue(self.scanNumber)
 
+    @QtCore.pyqtSlot(int,dict)
     def append_new_data(self,index,value):
         for key in self.plotParameters:
             self.plotData[key][self.scanNumber].append(value[key])
         self.plot_parameters()
 
+    @QtCore.pyqtSlot()
     def save_to_HDF5(self):
         self.scan.save_to_HDF5()
         self.scan.save_to_csv()
 
+    @QtCore.pyqtSlot()
     def plot_parameters(self):
+        try:
+            for key in self.plotParameters:
+                pen = self.plotPen[key]
+                y = self.plotData[key][self.scanNumber]
+                x = self.scan.timeScale[0:len(y)]
+                self.mainPlot.plot(x, y , pen=pen)
 
-        for key in self.plotParameters:
-            y = self.plotData[key][self.scanNumber]
-            x = self.scan.timeScale[0:len(y)]
-            self.mainPlot.plot(x, y , pen=(125, 0, 0))
+        except Exception as error:
+            self.rise_error('plotting',error)
 
-
+    @QtCore.pyqtSlot()
     def clear_plot(self):
         self.mainPlot.clear()
 
@@ -371,7 +391,20 @@ class StepScanCentralWidget(QtWidgets.QWidget):
     def print_parameters(self):
         print(self.scan.parameters)
 
-
+    @QtCore.pyqtSlot(str,str)
+    def rise_error(self, doingWhat, errorHandle, type='Warning', popup=True):
+        """ opens a dialog window showing the error"""
+        errorMessage = 'Error while {0}:\n{1}'.format(doingWhat,errorHandle)
+        print(errorMessage)
+        if popup:
+            errorDialog = QtWidgets.QMessageBox()
+            errorDialog.setText(errorMessage)
+            if type == 'Warning':
+                errorDialog.setIcon(QtWidgets.QMessageBox.Warning)
+            elif type == 'Critical':
+                errorDialog.setIcon(QtWidgets.QMessageBox.Critical)
+            errorDialog.setStandardButtons(QtWidgets.QMessageBox.Ok)
+            errorDialog.exec_()
 
 class StepScanWorker(QtCore.QObject):
     """ Object that performs a single scan. It is intended to be transfered to a new thread."""
@@ -394,30 +427,50 @@ class StepScanWorker(QtCore.QObject):
         print('worker scanning')
         for i in range(len(self.stagePositions)):
 
-            # self.move_stage_to_spinbox_value(self.stagePositions[i])
-
+            self.move_stage_to(self.stagePositions[i])
+            time.sleep(self.dwelltime)
             newdataDict = self.read_lockin()
             # print(newdataDict)
             self.newData.emit(i, newdataDict)
             for parameter, value in newdataDict.items():
                 self.data[parameter].append(value)
-            print(self.dwelltime)
-            time.sleep(self.dwelltime)
         self.finished.emit(self.data)
 
 
     def move_stage_to(self,pos):
-        # self.instruments['stage'].MoveTo(pos)
-        pass
+        try:
+            self.instruments['stage'].MoveTo(pos)
+        except Exception as error:
+            self.rise_error('moving stage', error, popup=False)
 
     def read_lockin(self):
-
-        vals = np.random.rand(2)
-        snapVals = {}
-        for i in range(len(self.lockinParameters)):
-            snapVals[self.lockinParameters[i]] = vals[i]
-        # snapVals = self.instruments['lockin'].readSnap()
+        """ read values declared in lockinParameters from the lock-in and outputs them in dict format."""
+        try:
+            snapVals = self.instruments['lockin'].readSnap()
+        except Exception as exception:
+            if testMode:
+                snapVals = {}
+                for i in range(len(self.lockinParameters)):
+                    snapVals[self.lockinParameters[i]] = np.random.rand(1)[0]
+            else:
+                self.rise_error('reading Lock-in', exception)
         return snapVals
+
+    @QtCore.pyqtSlot(str,str)
+    def rise_error(self, doingWhat, errorHandle, type='Warning', popup=True):
+        """ opens a dialog window showing the error"""
+        errorMessage = 'Thread Error while {0}:\n{1}'.format(doingWhat,errorHandle)
+        print(errorMessage)
+        if popup:
+            errorDialog = QtWidgets.QMessageBox()
+            errorDialog.setText(errorMessage)
+            if type == 'Warning':
+                errorDialog.setIcon(QtWidgets.QMessageBox.Warning)
+            elif type == 'Critical':
+                errorDialog.setIcon(QtWidgets.QMessageBox.Critical)
+            errorDialog.setStandardButtons(QtWidgets.QMessageBox.Ok)
+            errorDialog.exec_()
+
 
 
 def gaussian(x, mu, sig):

@@ -319,7 +319,7 @@ class Ui_MainWindow(object):
         self.label_7.setText(_translate("MainWindow", "total"))
         self.label_9.setText(_translate("MainWindow", "Remaining"))
         self.label_6.setText(_translate("MainWindow", "Total"))
-        self.label.setText(_translate("MainWindow", "Scan:"))
+        self.label.setText(_translate("MainWindow", "StepScan:"))
         self.label_10.setText(_translate("MainWindow", "000"))
         self.label_8.setText(_translate("MainWindow", "000"))
         self.label_13.setText(_translate("MainWindow", "Time"))
