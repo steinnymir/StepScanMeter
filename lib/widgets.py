@@ -351,6 +351,7 @@ class StepScanCentralWidget(QtWidgets.QWidget):
             for key, value in self.scan.data.items():
                 print(key)
                 print(value)
+            self.scanning = False
         else:
             self.make_single_scan()
 
