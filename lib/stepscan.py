@@ -45,7 +45,7 @@ class StepScan(QtCore.QObject):
             'afterMovedDelay': 0.01
                                 }
         self.settings_lockIn = {
-                                'dwellTime': 0.01,
+                                'dwellTime': 0.1,
                                 'measureParameters': ['X', 'Y'],
                                 }
         # self.dwellTime = 0.01
@@ -130,7 +130,8 @@ class StepScan(QtCore.QObject):
     def build_stage_positions(self):
         """ Convert picosecond time scale to mm steps for the stage"""
         for i in self.timeScale:
-            self.stagePoisitions[i] = self.timeScale[i] * 299.792458 *2
+            self.stagePoisitions[i] = self.timeScale[i] * 0.299792458 *2
+        print(self.timeScale)
 
     def get_save_directory(self,dataType):
         """ returns the standard directory where to save data."""

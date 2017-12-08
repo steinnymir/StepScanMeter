@@ -8,7 +8,7 @@ from lib import stepscan
 import pandas as pd
 
 import sys
-sys.path.append("U:\Dokumente\program\demsarlabprojects\TR-MOKE soft\Soft-for-TR-MOKE-setup")
+sys.path.append("C:\code\Soft-for-TR-MOKE-setup")
 try:
     import NewPortStagelib
     import USBGPIBlib
@@ -89,7 +89,7 @@ class StepScanCentralWidget(QtWidgets.QWidget):
 
         self.monitor_timer = QtCore.QTimer()
         self.monitor_timer.timeout.connect(self.on_monitor_timer)
-        self.monitor_timer.start(400)
+        #self.monitor_timer.start(400)
 
 
         self.instruments = {}
@@ -97,8 +97,6 @@ class StepScanCentralWidget(QtWidgets.QWidget):
             self.instruments['lockin'] = USBGPIBlib.USBGPIB()
             self.instruments['lockin'].connect()
             self.instruments['stage'] = NewPortStagelib.NewPortStage()
-            self.instruments['stage'].Initilize()
-            self.instruments['stage'].Initilize()
             self.instruments['stage'].Initilize()
 
     def make_layout(self):
@@ -283,7 +281,7 @@ class StepScanCentralWidget(QtWidgets.QWidget):
             range_points = np.arange(start,stop,step)
             for j in range_points:
                 timescale.append(j)
-                stagePositions.append(j*299.792458)
+                stagePositions.append(j*0.299792458*2)
         if gfs.monotonically_increasing(timescale):
             self.scan.timeScale = timescale
             self.scan.stagePositions = stagePositions
@@ -298,8 +296,8 @@ class StepScanCentralWidget(QtWidgets.QWidget):
             self.X = np.random.rand(1)[0]*0.001
             self.Y = np.random.rand(1)[0]*0.001
         else:
-            self.X = self.instruments['lockin'].ReadValue('X')
-            self.Y = self.instruments['lockin'].ReadValue('Y')
+            self.X = self.instruments['lockin'].readValue('X')
+            self.Y = self.instruments['lockin'].readValue('Y')
         self.lockin_X_monitor.setText('{:.3E} V'.format(self.X))
         self.lockin_Y_monitor.setText('{:.3E} V'.format(self.Y))
 
@@ -317,6 +315,7 @@ class StepScanCentralWidget(QtWidgets.QWidget):
             self.stop_scan_after_current()
             self.scanning = False
         else:
+            self.monitor_timer.stop()
             print('scan started')
             for parameter in self.lockinParameters:
                 self.scan.data[parameter] = pd.DataFrame(np.zeros(len(self.scan.timeScale)),columns=['avg'], index = self.scan.timeScale)
@@ -333,8 +332,8 @@ class StepScanCentralWidget(QtWidgets.QWidget):
 
 
         self.scan_thread = QtCore.QThread()
-        print('scanning for {0} with {1} dwelltime'.format(self.lockinParameters,self.scan.settings_lockIn['dwellTime']))
-        self.w = StepScanWorker(self.scan.stagePositions, self.lockinParameters, self.scan.settings_lockIn['dwellTime'])
+        print('scanning for {0} with {1} dwelltime'.format(self.lockinParameters,self.scan.settings_lockIn['dwellTime'], self.instruments))
+        self.w = StepScanWorker(self.scan.stagePositions, self.lockinParameters, self.scan.settings_lockIn['dwellTime'], self.instruments)
         self.w.finished[pd.DataFrame].connect(self.on_finished)
         self.w.newData.connect(self.append_new_data)
         self.w.moveToThread(self.scan_thread)
@@ -430,11 +429,12 @@ class StepScanWorker(QtCore.QObject):
     newData = QtCore.pyqtSignal(int, dict)
     scanning = QtCore.pyqtSignal(bool)
 
-    def __init__(self, stagePositions, lockinParameters, dwelltime):
+    def __init__(self, stagePositions, lockinParameters, dwelltime, instruments):
         super().__init__()
         self.stagePositions = stagePositions
         self.dwelltime = dwelltime
         self.lockinParameters = lockinParameters
+        self.instruments = instruments
         self.data = {}
         for parameter in self.lockinParameters:
             self.data[parameter] = []
@@ -462,7 +462,7 @@ class StepScanWorker(QtCore.QObject):
     def read_lockin(self):
         """ read values declared in lockinParameters from the lock-in and outputs them in dict format."""
         try:
-            snapVals = self.instruments['lockin'].readSnap()
+            snapVals = self.instruments['lockin'].readSnap(self.lockinParameters)
         except Exception as exception:
             if testMode:
                 snapVals = {}
