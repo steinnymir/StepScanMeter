@@ -89,6 +89,10 @@ class StepScanCentralWidget(QtWidgets.QWidget):
 
         self.monitor_timer = QtCore.QTimer()
         self.monitor_timer.timeout.connect(self.on_monitor_timer)
+        self.stageMoveTimer = QtCore.QTimer()
+        self.stageMoveTimer.timeout.connect(self.on_stage_move_timer)
+
+
         #self.monitor_timer.start(400)
 
 
@@ -98,7 +102,8 @@ class StepScanCentralWidget(QtWidgets.QWidget):
             self.instruments['lockin'].connect()
             self.instruments['stage'] = NewPortStagelib.NewPortStage()
             self.instruments['stage'].Initilize()
-
+            # self.currentStagePosition = self.instruments['stage'].get_current_position()
+        self.currentStagePosition = 0
     def make_layout(self):
         """ Generate the GUI layout """
 
@@ -127,20 +132,24 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         layoutCentralPanel = QtWidgets.QGridLayout()
         layoutCentralPanel.setSpacing(10)
 
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
 
 
 
         self.mainPlot = PG.PlotWidget()
-        layoutCentralPanel.addWidget(self.mainPlot,0,0,2,1)
+        layoutCentralPanel.addWidget(self.mainPlot,0,0,1,2)
         self.mainPlot.setSizePolicy(sizePolicy)
+
+
         self.scanStatusBox = QtWidgets.QGroupBox('StepScan Status:')
-        layoutCentralPanel.addWidget(self.scanStatusBox,2,0,1,1)
+        layoutCentralPanel.addWidget(self.scanStatusBox,2,0)
         scanStatusLayout = QtWidgets.QGridLayout()
-        self.scanStatusBox.setSizePolicy(sizePolicy)
+        scanStatusSizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        self.scanStatusBox.setSizePolicy(scanStatusSizePolicy)
         self.scanStatusBox.setLayout(scanStatusLayout)
+
         self.startstop_button = QtWidgets.QPushButton('Start StepScan')
         self.startstop_button.clicked.connect(self.startstop_scan)
         scanStatusLayout.addWidget(self.startstop_button, 0, 2, 1, 2)
@@ -153,6 +162,14 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         self.n_of_averages_box.setValue(self.n_of_averages)
         scanStatusLayout.addWidget(self.n_of_averages_box,1,2,2,2)
 
+        self.stageControl = QtWidgets.QGroupBox('stageControl:')
+        layoutCentralPanel.addWidget(self.stageControl, 2, 1)
+        stageControlLayout = QtWidgets.QGridLayout()
+        scanStatusSizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        self.stageControl.setSizePolicy(scanStatusSizePolicy)
+        self.stageControl.setLayout(stageControlLayout)
+
+
         self.moveStageToButton = QtWidgets.QPushButton('Move stage')
         self.moveStageToSpinBox = QtWidgets.QDoubleSpinBox()
         self.moveStageToSpinBox.setSuffix(' mm')
@@ -161,10 +178,29 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         self.moveStageToSpinBox.setSingleStep(0.01)
         self.moveStageToButton.clicked.connect(self.move_stage_to_spinbox_value)
 
+        self.moveStageLeft = QtWidgets.QPushButton("<")
+        self.moveStageLeft.pressed.connect(lambda: self.moving_stage('-'))
+        self.moveStageLeft.released.connect(lambda: self.moving_stage(None))
+        self.moveStageRight = QtWidgets.QPushButton(">")
+        self.moveStageRight.pressed.connect(lambda: self.moving_stage('+'))
+        self.moveStageRight.released.connect(lambda: self.moving_stage(None))
 
-        scanStatusLayout.addWidget(QtWidgets.QLabel("Position:"), 0, 0)
-        scanStatusLayout.addWidget(self.moveStageToSpinBox,0,1)
-        scanStatusLayout.addWidget(self.moveStageToButton,1,0,1,2)
+
+        self.moveStageStep = QtWidgets.QDoubleSpinBox()
+        self.moveStageStep.setSuffix(' mm')
+        self.moveStageStep.setRange(-150, 150)
+        self.moveStageStep.setValue(0.01)
+        self.moveStageStep.setSingleStep(0.001)
+
+
+        stageControlLayout.addWidget(QtWidgets.QLabel("Position:"), 0, 0)
+        stageControlLayout.addWidget(self.moveStageToSpinBox,0,1)
+        stageControlLayout.addWidget(self.moveStageToButton,0,2)
+        stageControlLayout.addWidget(self.moveStageLeft,1,0)
+        stageControlLayout.addWidget(self.moveStageStep,1,1)
+        stageControlLayout.addWidget(self.moveStageRight,1,2)
+
+
 
         # ------- DEFINE RIGHT PANEL -------
         layoutRightPanel = QtWidgets.QVBoxLayout()
@@ -191,6 +227,10 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         self.temperature_monitor.setFont(self.monitor_number_font)
         monitorGroupLayout.addWidget(QtWidgets.QLabel('Temperature:'), 4, 0)
         monitorGroupLayout.addWidget(self.temperature_monitor, 5, 0, 1, 3)
+
+
+
+
 
         self.setTimeAxisGroup = QtWidgets.QGroupBox('Set Time Axis')
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
@@ -258,6 +298,20 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         self.monitor_number_font.setPixelSize(14)
         self.monitor_number_font.setBold(True)
 
+    def moving_stage(self, direction):
+        if direction is None:
+            self.stageMoveTimer.stop()
+        else:
+            self.moveStageDirection = direction
+            self.stageMoveTimer.start(100)
+
+    def on_stage_move_timer(self):
+        if self.moveStageDirection == "+":
+            newPos = self.currentStagePosition + self.moveStageStep.value()
+        elif self.moveStageDirection == "-":
+            newPos = self.currentStagePosition - self.moveStageStep.value()
+        self.move_stage_to(newPos)
+
     @QtCore.pyqtSlot()
     def set_n_of_averages(self,nAvg):
         self.n_of_averages = nAvg
@@ -308,6 +362,15 @@ class StepScanCentralWidget(QtWidgets.QWidget):
             print('Stage moved to: {}'.format(newPos))
         else:
             self.instruments['stage'].MoveTo(newPos)
+
+    @QtCore.pyqtSlot(float)
+    def move_stage_to(self, pos):
+        self.currentStagePosition = pos
+        if testMode:
+            print('Stage moved to: {}'.format(pos))
+        else:
+            self.instruments['stage'].MoveTo(pos)
+
 
     @QtCore.pyqtSlot()
     def startstop_scan(self):
@@ -386,6 +449,18 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         self.scan.save_to_HDF5()
         self.scan.save_to_csv()
 
+
+    # todo: implement following code for plot refreshing
+    # def set_plotdata(self, name, dataset_x, dataset_y):
+    #
+    #     self.canvas = self.win.addPlot(title='bla')
+    #
+    #     if name in self.traces:
+    #         self.tracesname.setData(dataset_x,dataset_y)
+    #     else:
+    #         self.traces[name] = self.canvas.plot(pen='y')
+
+
     @QtCore.pyqtSlot()
     def plot_parameters(self):
         try:
@@ -420,6 +495,13 @@ class StepScanCentralWidget(QtWidgets.QWidget):
                 errorDialog.setIcon(QtWidgets.QMessageBox.Critical)
             errorDialog.setStandardButtons(QtWidgets.QMessageBox.Ok)
             errorDialog.exec_()
+
+    def closeEvent(self): # todo: implement correct closing procedure
+        for name, inst in self.instruments.items():
+            inst.close()
+            print('{} closed'.format(name))
+        QtCore.QCoreApplication.instance().quit()
+
 
 class StepScanWorker(QtCore.QObject):
     """ Object that performs a single scan. It is intended to be transfered to a new thread."""
@@ -489,8 +571,7 @@ class StepScanWorker(QtCore.QObject):
 
 
 
-def gaussian(x, mu, sig):
-    return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
+
 
 
 if __name__ == '__main__':
