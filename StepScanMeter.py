@@ -1,14 +1,11 @@
 import sys
+
 from PyQt5 import QtWidgets as qw, QtCore as qc, uic
-import pyqtgraph as pg
 
-
-from lib import stepscan
-from lib import widgets
-import pyqtgraph as qg
+from utils import singlewidget
 
 try:
-    from lib.StepScan_GUI import Ui_MainWindow
+    from deprecated.StepScan_GUI import Ui_MainWindow
 except:
     print('error importing QtDesigner widgets.')
 
@@ -19,7 +16,7 @@ def main():
     run_qtd = False
     if run_qtd:
         try:
-            from lib.StepScan_GUI import Ui_MainWindow
+            from deprecated.StepScan_GUI import Ui_MainWindow
         except:
             print('error importing QtDesigner widgets.')
     # recompile()
@@ -31,8 +28,8 @@ def main():
     if run_qtd:
         prg = StepScanMeterMainApp()
     else:
-        prg = widgets.StepScanMainWindow()
-    
+        prg = singlewidget.StepScanMainWindow()
+
     print('showing program')
     prg.show()
 

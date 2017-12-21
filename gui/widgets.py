@@ -4,13 +4,16 @@
 @author: Steinn Ymir Agustsson
 """
 import sys
-import qdarkstyle
+
 import pyqtgraph as PG
-from PyQt5 import QtWidgets, QtCore, QtGui
-from stepscan.QT.ui_instrumentsMonitor import Ui_Ui_InstrumentsMonitor
-from stepscan.QT.ui_plotArea import  Ui_Ui_PlotArea
-from stepscan.QT.ui_scanMonitor import Ui_UI_ScanMonitor
-from stepscan.QT.ui_setupTimescale import Ui_Ui_SetupTimeScale
+import qdarkstyle
+from PyQt5 import QtWidgets, QtCore
+from core.QT.ui_instrumentsMonitor import Ui_Ui_InstrumentsMonitor
+from core.QT.ui_plotArea import Ui_Ui_PlotArea
+from core.QT.ui_scanMonitor import Ui_UI_ScanMonitor
+
+from gui.QT.ui_setupTimescale import Ui_Ui_SetupTimeScale
+
 
 class DockSetupTimeScale(QtWidgets.QDockWidget, QtWidgets.QWidget):
     def __init__(self):

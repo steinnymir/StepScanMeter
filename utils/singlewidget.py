@@ -2,9 +2,9 @@ import pyqtgraph as PG
 import qdarkstyle
 from PyQt5 import QtGui, QtWidgets, QtCore
 from pyqtgraph.parametertree import Parameter, ParameterTree
-from lib import gfs
+from utils import gfs
 import numpy as np
-from lib import stepscan
+from utils import stepscan
 import pandas as pd
 
 import sys

@@ -6,7 +6,7 @@ Created on Nov 22 09:57:29 2017
 """
 from PyQt5 import QtGui, QtWidgets, QtCore
 import time
-from lib.gfs import raise_Qerror
+from utils.gfs import raise_Qerror
 
 def main():
 
