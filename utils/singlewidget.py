@@ -25,13 +25,9 @@ class StepScanMainWindow(QtWidgets.QMainWindow):
         """Initialize by setting window title, size and graphic options"""
         super().__init__()
 
-        self.title = 'Step StepScan Meter'
-        self.left = 300
-        self.top = 100
-        self.width = 1200
-        self.height = 700
+        self.setWindowTitle('Step StepScan Meter')
+        self.setGeometry(300, 100, 1200, 700)
         self.initUI()
-
         # set the cool dark theme and other plotting settings
         self.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
         PG.setConfigOption('background', 0.1)
@@ -41,8 +37,6 @@ class StepScanMainWindow(QtWidgets.QMainWindow):
 
     def initUI(self):
         """Create the layout, adding central widget, layout style and status bar. """
-        self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
 
         layout = QtGui.QGridLayout()  # create a grid for subWidgets
         layout.setSpacing(10)
@@ -70,6 +64,7 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         # self.scan_thread = QtCore.QThread()
 
         self.n_of_averages = 5
+        self.scansLeft = self.n_of_averages
         self.scanning = False
         self.lockinParameters = ['X','Y']
         self.plotParameters = self.lockinParameters
@@ -85,7 +80,6 @@ class StepScanCentralWidget(QtWidgets.QWidget):
         self.make_layout()
         self.show()
 
-        self.scansLeft = self.n_of_averages
 
         self.monitor_timer = QtCore.QTimer()
         self.monitor_timer.timeout.connect(self.on_monitor_timer)

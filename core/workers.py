@@ -41,7 +41,7 @@ class Worker(QtCore.QObject):
 
 
     def check_requirements(self):
-        """ method that should check wheather all the required instruments are connected and available."""
+        """ method that should check weather all the required instruments are connected and available."""
         availableInstruments = []
         availableSettings = []
         for key,val in self.instruments.items():  # create list of available instruments
@@ -96,11 +96,11 @@ class StepScanWorker(Worker):
 
     def __init__(self, stepScanSettings, instruments):
         super(StepScanWorker, self).__init__(stepScanSettings, instruments)
-        self.status = 'loading'
+        self.set_status('loading')
         self.requiredInstruments = ['Lock-in', 'Stage']
         self.requiredSettings = ['stagePositions','lockinParametersToRead','dwelltime','numberOfScans']
         self.check_instruments()
-        self.status = 'idle'
+        self.set_status('idle')
 
         for instrument, value in instruments.items():
             inst_str = str(instrument).lower().replace('-','')
@@ -112,9 +112,11 @@ class StepScanWorker(Worker):
     def work(self):
         """ Step Scan specific work procedure.
 
+        Performs numberOfScans scans in which each moves the stage to the position defined in stagePositions, waits
+        for the dwellTime, and finally records the values contained in lockinParameters from the Lock-in amplifier.
         """
         print('worker scanning')
-        self.status = 'scanning'
+        self.set_status('scanning')
 
         for j in self.numberOfScans:
             self.result['data'][j] = {}
@@ -138,7 +140,7 @@ class StepScanWorker(Worker):
                     self.kill_worker()
 
         self.finished.emit(self.result)
-        self.status = 'complete'
+        self.set_status('complete')
 
 
 if __name__ == "__main__":
