@@ -12,13 +12,15 @@ def main():
     print(scan.__dict__)
 
 
-class Scan(object):
+class Result(object):
     """ parent class for any type of measurement data.
     :arg
     """
     def __init__(self, *args, **kwargs):
 
-        self.data = {'x':np.array([]),
+        self.data = {'x_axis':np.array([]),
+                     'raw':np.array([]),
+                     'avg':np.array([]),
                      }
 
         # manage metadata import
