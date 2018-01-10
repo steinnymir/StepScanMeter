@@ -2,13 +2,12 @@ import sys
 
 from PyQt5 import QtWidgets as qw, QtCore as qc, uic
 
-from utils import singlewidget
+from deprecated import singlewidget
 
 try:
     from deprecated.StepScan_GUI import Ui_MainWindow
 except:
     print('error importing QtDesigner widgets.')
-
 
 
 def main():

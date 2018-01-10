@@ -1,13 +1,15 @@
+import sys
+
+import numpy as np
+import pandas as pd
 import pyqtgraph as PG
 import qdarkstyle
 from PyQt5 import QtGui, QtWidgets, QtCore
 from pyqtgraph.parametertree import Parameter, ParameterTree
-from utils import gfs
-import numpy as np
-from utils import stepscan
-import pandas as pd
 
-import sys
+from stepscan import stepscan
+from utils import utils
+
 sys.path.append("C:\code\Soft-for-TR-MOKE-setup")
 try:
     import NewPortStagelib
@@ -330,7 +332,7 @@ class StepScanCentralWidget(QtWidgets.QWidget):
             for j in range_points:
                 timescale.append(j)
                 stagePositions.append(j*0.299792458*2)
-        if gfs.monotonically_increasing(timescale):
+        if utils.monotonically_increasing(timescale):
             self.scan.timeScale = timescale
             self.scan.stagePositions = stagePositions
 

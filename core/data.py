@@ -8,7 +8,7 @@ import numpy as np
 def main():
     properties = {'pump_power': 40, 'probe_power': 20}
     asd = {'asdf':3}
-    scan = Scan(properties, asd,  other='bla')
+    scan = Result(properties, asd,  other='bla')
     print(scan.__dict__)
 
 

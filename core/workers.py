@@ -4,9 +4,12 @@ Created on Nov 22 09:57:29 2017
 
 @author: S.Y. Agustsson
 """
-from PyQt5 import QtGui, QtWidgets, QtCore
 import time
-from utils.gfs import raise_Qerror
+
+from PyQt5 import QtCore
+
+from utils.utils import raise_Qerror
+
 
 def main():
 
@@ -96,6 +99,7 @@ class StepScanWorker(Worker):
 
     def __init__(self, stepScanSettings, instruments):
         super(StepScanWorker, self).__init__(stepScanSettings, instruments)
+
         self.set_status('loading')
         self.requiredInstruments = ['Lock-in', 'Stage']
         self.requiredSettings = ['stagePositions','lockinParametersToRead','dwelltime','numberOfScans']

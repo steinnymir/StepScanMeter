@@ -1,5 +1,20 @@
+"""
+@author Steinn Ymir Agustsson
+
+"""
+
+""" 
+
+Usefull functions to be implemented throughout the whole repo.
+
+"""
+
+import numpy as np
+from PyQt5 import QtWidgets
+
 def monotonically_increasing(l):
     return all(x < y for x, y in zip(l, l[1:]))
+
 
 def raise_Qerror(self, doingWhat, errorHandle, type='Warning', popup=True):
     """ opens a dialog window showing the error"""
@@ -14,6 +29,7 @@ def raise_Qerror(self, doingWhat, errorHandle, type='Warning', popup=True):
             errorDialog.setIcon(QtWidgets.QMessageBox.Critical)
         errorDialog.setStandardButtons(QtWidgets.QMessageBox.Ok)
         errorDialog.exec_()
+
 
 def gaussian(x, mu, sig):
     return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))

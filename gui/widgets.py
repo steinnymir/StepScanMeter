@@ -8,10 +8,10 @@ import sys
 import pyqtgraph as PG
 import qdarkstyle
 from PyQt5 import QtWidgets, QtCore
-from core.QT.ui_instrumentsMonitor import Ui_Ui_InstrumentsMonitor
-from core.QT.ui_plotArea import Ui_Ui_PlotArea
-from core.QT.ui_scanMonitor import Ui_UI_ScanMonitor
 
+from core import Ui_UI_ScanMonitor
+from core import Ui_Ui_InstrumentsMonitor
+from core import Ui_Ui_PlotArea
 from gui.QT.ui_setupTimescale import Ui_Ui_SetupTimeScale
 
 
