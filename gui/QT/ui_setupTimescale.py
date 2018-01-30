@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'E:\py_code\StepScanMeter\core\QT\ui_setupTimescale.ui'
+# Form implementation generated from reading ui file 'E:\py_code\StepScanMeter\measurement\QT\ui_setupTimescale.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #

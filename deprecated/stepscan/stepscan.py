@@ -43,11 +43,11 @@ class StepScan(QtCore.QObject):
         self.settings_delayStage = {
             'zero': 0.0,
             'afterMovedDelay': 0.01
-                                }
+            }
         self.settings_lockIn = {
-                                'dwellTime': 0.1,
-                                'measureParameters': ['X', 'Y'],
-                                }
+            'dwellTime': 0.1,
+            'measureParameters': ['X', 'Y'],
+            }
         # self.dwellTime = 0.01
         # self.lockinParameters = ['X', 'Y', 'Aux in 1']
         for parameter in self.settings_lockIn['measureParameters']:

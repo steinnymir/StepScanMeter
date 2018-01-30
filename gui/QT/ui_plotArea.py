@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'E:\py_code\StepScanMeter\core\QT\ui_plotArea.ui'
+# Form implementation generated from reading ui file 'E:\py_code\StepScanMeter\measurement\QT\ui_plotArea.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #

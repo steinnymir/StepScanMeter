@@ -5,17 +5,18 @@
 """
 import sys
 
-import pyqtgraph as PG
+import pyqtgraph as pg
 import qdarkstyle
 from PyQt5 import QtWidgets, QtCore
 
-from core import Ui_UI_ScanMonitor
-from core import Ui_Ui_InstrumentsMonitor
-from core import Ui_Ui_PlotArea
+from gui.QT.ui_scanMonitor import  Ui_UI_ScanMonitor
+from gui.QT.ui_instrumentsMonitor import Ui_Ui_InstrumentsMonitor
+from gui.QT.ui_plotArea import Ui_Ui_PlotArea
 from gui.QT.ui_setupTimescale import Ui_Ui_SetupTimeScale
 
 
 class DockSetupTimeScale(QtWidgets.QDockWidget, QtWidgets.QWidget):
+
     def __init__(self):
         super(DockSetupTimeScale, self).__init__()
 
@@ -37,6 +38,9 @@ class DockPlotArea(QtWidgets.QDockWidget, QtWidgets.QWidget):
 
         self.ui = Ui_Ui_PlotArea()
         self.ui.setupUi(self)
+        self.graph = pg.GraphicsView()
+        layout = QtWidgets.QGridLayout()
+        layout.addWidget(self.graph,0,0)
 
 
 class DockInstrumentMonitor(QtWidgets.QDockWidget, QtWidgets.QWidget):
@@ -51,31 +55,47 @@ class TESTMainWidget(QtWidgets.QMainWindow):
 
     def __init__(self):
         super(TESTMainWidget, self).__init__()
+        self.setWindowTitle('Step StepScan Meter')
+        self.setGeometry(300, 100, 1600, 900)
+
+        # set the cool dark theme and other plotting settings
+        self.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+        pg.setConfigOption('background', 0.1)
+        pg.setConfigOption('foreground', 0.7)
+        pg.setConfigOptions(antialias=True)
+
 
         # self.setupUi(self)
+        # self.qsettings = QtCore.QSettings('DemsarLabs','StepScanMeter')
+        # geometry = self.qsettings.value('geometry', '')
+
+
         self.plotArea = DockPlotArea()
+        self.plotArea.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea)
         self.instrumentMonitor = DockInstrumentMonitor()
         self.scanMonitor = DockScanMonitor()
         self.setupTimeScale = DockSetupTimeScale()
 
-        layout = QtWidgets.QGridLayout()  # create a grid for subWidgets
-        layout.setSpacing(10)
-        self.setLayout(layout)
+        # layout = QtWidgets.QGridLayout()  # create a grid for subWidgets
+        # layout.setSpacing(10)
+        # self.setLayout(layout)
+        #
+        #
+        # # layout.addWidget(self.plotArea, 0, 0)
+        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.plotArea)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.instrumentMonitor)
+        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.scanMonitor)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.setupTimeScale)
 
 
-        layout.addWidget(self.plotArea, 0, 0)
-        layout.addWidget(self.instrumentMonitor, 0, 3)
-        layout.addWidget(self.scanMonitor, 2, 0)
-        layout.addWidget(self.setupTimeScale, 2, 3)
-        # self.setCentralWidget(self.centralWidget)
-        # self.statusBar().showMessage('Message in statusbar.')
+        # self.restoreGeometry(geometry)
 
-        self.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-        PG.setConfigOption('background', 0.1)
-        PG.setConfigOption('foreground', 0.7)
-        PG.setConfigOptions(antialias=True)
 
-        self.show()
+
+    # def closeEvent(self, event):
+    #     # geometry = self.saveGeometry()
+    #     # self.qsettings.setValue('geometry', geometry)
+    #     super(TESTMainWidget, self).closeEvent(event)
 
 
 def my_exception_hook(exctype, value, traceback):
