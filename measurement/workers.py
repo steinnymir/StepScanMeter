@@ -90,7 +90,7 @@ class Worker(QtCore.QObject):
         raise NotImplementedError("Method 'work' not implemented in worker (sub)class")
 
     @QtCore.pyqtSlot()
-    def kill_worker(self):
+    def kill_worker(self): #todo: move to __del__
         """ Safely kill the thread by closing connection to all insturments.
 
         """
