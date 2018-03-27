@@ -59,10 +59,10 @@ class TESTMainWidget(QtWidgets.QMainWindow):
         self.setGeometry(300, 100, 1600, 900)
 
         # set the cool dark theme and other plotting settings
-        self.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-        pg.setConfigOption('background', 0.1)
-        pg.setConfigOption('foreground', 0.7)
-        pg.setConfigOptions(antialias=True)
+        # self.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+        # pg.setConfigOption('background', 0.1)
+        # pg.setConfigOption('foreground', 0.7)
+        # pg.setConfigOptions(antialias=True)
 
 
         # self.setupUi(self)
