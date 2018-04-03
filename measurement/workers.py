@@ -23,14 +23,16 @@ class Worker(QtCore.QObject):
     This class is to be launched and assigned to a thread.
 
     settings and instruments:
-        these are the worker specific settings and instruments required to perform a measurement.
+        these are the worker specific settings and instruments required to
+        perform a measurement.
 
     signals emitted:
 
     finished:
         at end of the scan, emits the results stored over the whole scan.
     newData:
-        emitted at each measurement point. Usually contains a dictionary with the last measured values toghether with scan progress information.
+        emitted at each measurement point. Usually contains a dictionary with
+        the last measured values toghether with scan progress information.
 
     """
 
