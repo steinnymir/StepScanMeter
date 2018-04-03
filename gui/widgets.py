@@ -9,7 +9,7 @@
 @author: Steinn Ymir Agustsson
 """
 import sys
-
+import numpy as np
 import pyqtgraph as pg
 # from pyqtgraph.Qt import QtWidgets, QtCore
 from pyqtgraph.dockarea import DockArea
@@ -22,6 +22,8 @@ from gui.QT.ui_scanMonitor import Ui_UI_ScanMonitor
 from gui.QT.ui_instrumentsMonitor import Ui_Ui_InstrumentsMonitor
 from gui.QT.ui_plotArea import Ui_Ui_PlotArea
 from gui.QT.ui_setupTimescale import Ui_Ui_SetupTimeScale
+
+from utils import utils
 
 
 def main():
@@ -47,14 +49,14 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setWindowTitle('Step StepScan Meter')
-        self.setGeometry(300, 100, 1600, 900)
+        self.setGeometry(100, 50, 800, 900)
 
         self.status_bar = self.statusBar()
         self.status_bar.showMessage('ready')
         self.makeMenuBar()
 
         # set the cool dark theme and other plotting settings
-        # self.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+        self.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
         pg.setConfigOption('background', 0.1)
         pg.setConfigOption('foreground', 0.7)
         pg.setConfigOptions(antialias=True)
@@ -70,11 +72,11 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.qsettings = QtCore.QSettings('DemsarLabs','StepScanMeter')
         # geometry = self.qsettings.value('geometry', '')
 
-        self.plot_area = PlotAreaWidget()
-        self.plot_area_docker = QtWidgets.QDockWidget()
-        self.plot_area_docker.setObjectName("docker")
+        self.scan_area = ScanAreaWidget()
+        self.scan_area_docker = QtWidgets.QDockWidget()
+        self.scan_area_docker.setObjectName("docker")
         # self.plot_area_docker.setAllowedAreas(QtCore.Qt.TopDockWidgetArea)
-        self.plot_area_docker.setWidget(self.plot_area)
+        self.scan_area_docker.setWidget(self.scan_area)
 
         self.scan_setup_area = ScanSetupWidget()
         self.scan_setup_area_docker = QtWidgets.QDockWidget()
@@ -82,24 +84,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.scan_setup_area_docker.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea)
         self.scan_setup_area_docker.setWidget(self.scan_setup_area)
 
-
+        self.scan_setup_area.set_scan_settings.connect(self.scan_area.acceptScanSettings)
         self.instrument_monitor = DockInstrumentMonitor()
-        # self.scan_monitor = DockScanMonitor()
-        self.setup_timescale = DockSetupTimeScale()
-
-        # layout = QtWidgets.QGridLayout()  # create a grid for subWidgets
-        # layout.setSpacing(10)
-        # self.setLayout(layout)
-        #
-
-        # layout.addWidget(self.plotArea, 0, 0)
 
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.scan_setup_area_docker)
-        self.addDockWidget(QtCore.Qt.TopDockWidgetArea, self.plot_area_docker)
+        self.addDockWidget(QtCore.Qt.TopDockWidgetArea, self.scan_area_docker)
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.instrument_monitor)
         # self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.scan_monitor)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.setup_timescale)
-
         # self.restoreGeometry(geometry)
 
     def makeMenuBar(self):
@@ -164,19 +155,12 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).closeEvent(event)
 
 
-class DockSetupTimeScale(QtWidgets.QDockWidget, QtWidgets.QWidget):
-
-    def __init__(self):
-        super(DockSetupTimeScale, self).__init__()
-
-        self.ui = Ui_Ui_SetupTimeScale()
-        self.ui.setupUi(self)
-
-
 class ScanSetupWidget(QtWidgets.QWidget):
+    set_scan_settings = QtCore.pyqtSignal(dict)
+
     def __init__(self):
         super(ScanSetupWidget, self).__init__()
-
+        self.scan_settings = {'test':0}
         self.setupUI()
 
     def setupUI(self):
@@ -185,12 +169,16 @@ class ScanSetupWidget(QtWidgets.QWidget):
         self.scan_type_select = QtWidgets.QComboBox()
 
         self.file_settings = self.makeFilesettingsBox()
-
-        self.main_widget = QtWidgets.QWidget()
         self.master_layout.addWidget(self.file_settings)
-        self.master_layout.addWidget(self.main_widget)
-        self.setLayout(self.master_layout)
 
+        self.timescale_group_box = self.makeTimeScaleBox()
+        self.master_layout.addWidget(self.timescale_group_box)
+
+        self.apply_button = QtWidgets.QPushButton('Apply')
+        self.master_layout.addWidget(self.apply_button)
+        self.apply_button.clicked.connect(self.acceptSettings)
+
+        self.setLayout(self.master_layout)
 
     def makeFilesettingsBox(self):
         """ group box containing file name and location text boxes
@@ -201,10 +189,10 @@ class ScanSetupWidget(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         layout.setSpacing(10)
 
-        self._file_name_label = QtWidgets.QLabel('File Name:')
+        self.file_name_label = QtWidgets.QLabel('File Name:')
         self.file_name = QtWidgets.QLineEdit()
 
-        self._file_dir_label = QtWidgets.QLabel('Save in:')
+        self.file_dir_label = QtWidgets.QLabel('Save in:')
         self.file_dir = QtWidgets.QLineEdit()
 
         layout.addWidget(self.file_name_label)
@@ -215,49 +203,124 @@ class ScanSetupWidget(QtWidgets.QWidget):
         return file_group_box
 
     def makeTimeScaleBox(self):
-        """ group box containing file name and location text boxes
+        """ group box containing timescale settings
 
         TODO: add signals/slots and finish this 
         """
-        timescale_group_box = QtWidgets.QGroupBox()
-        layout = QtWidgets.QVBoxLayout()
-        layout.setSpacing(10)
+        setTimeAxisGroup = QtWidgets.QGroupBox('Set Time Axis')
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        setTimeAxisGroup.setSizePolicy(sizePolicy)
 
-        sections_layout = QtWidgets.QHBoxLayout()
-        self._section_label = QtWidgets.QLabel('File Name:')
+        setTimeAxisGroupLayout = QtWidgets.QGridLayout()
+        setTimeAxisGroup.setLayout(setTimeAxisGroupLayout)
+
+        setTimeAxisGroupLayout.addWidget(QtWidgets.QLabel('from:'), 0, 0)
+        setTimeAxisGroupLayout.addWidget(QtWidgets.QLabel('Step size:'), 0, 1)
+
+        v_position = 0
+        self.timeRanges = 3
+        init_steps = [0.05, 0.05, 0.1, 0.2, 0.5, 2, 5, 10]
+        init_ranges = [-1, 0, 1, 3, 10, 50, 100, 200, 500]
+        for i in range(self.timeRanges):
+            v_position = i + 1
+            name_from = 'timeRange' + str(i) + '_from'
+            value = QtWidgets.QDoubleSpinBox()
+            setattr(self, name_from, QtWidgets.QDoubleSpinBox())
+            getattr(self, name_from).setRange(-1000, 1000)
+            getattr(self, name_from).setSuffix(' ps')
+            getattr(self, name_from).setSingleStep(0.01)
+            getattr(self, name_from).setValue(init_ranges[i])
+            setTimeAxisGroupLayout.addWidget(getattr(self, name_from), v_position, 0)
+            name_step = 'timeRange' + str(i) + '_step'
+            setattr(self, name_step, QtWidgets.QDoubleSpinBox())
+            getattr(self, name_step).setRange(0, 100)
+            getattr(self, name_step).setSuffix(' ps')
+            getattr(self, name_step).setSingleStep(0.01)
+            getattr(self, name_step).setValue(init_steps[i])
+
+            setTimeAxisGroupLayout.addWidget(getattr(self, name_step), v_position, 1)
+
+        self.setTimeAxisApply = QtWidgets.QPushButton('Apply')
+        self.setTimeAxisApply.clicked.connect(self.set_time_axis)
+        setTimeAxisGroupLayout.addWidget(self.setTimeAxisApply, v_position + 1, 0, 1, 2)
+
+        return setTimeAxisGroup
 
         return timescale_group_box
 
+    @QtCore.pyqtSlot()
+    def set_time_axis(self):
+        """ Uses the values given for the time ranges to define the time scale and corresponding stage positions for the scan."""
+        startPoints = []
+        steps = []
+        for i in range(self.timeRanges):
+            varName_from = 'timeRange' + str(i) + '_from'
+            startPoints.append(np.float64(getattr(self, varName_from).cleanText()))
+            varName_step = 'timeRange' + str(i) + '_step'
+            steps.append(np.float64(getattr(self, varName_step).cleanText()))
+        timescale = []
+        stagePositions = []
+        for i in range(len(startPoints) - 1):
+            start = startPoints[i]
+            stop = startPoints[i + 1]
+            step = steps[i]
+            range_points = np.arange(start, stop, step)
+            for j in range_points:
+                timescale.append(j)
+                stagePositions.append(j * 0.299792458 * 2)
+        if utils.monotonically_increasing(timescale):
+            self.scan_settings['timescale'] = timescale
+            self.scan_settings['stage positions'] = stagePositions
+        else:
+            print('time scale defined is not monotonous! check again!!')
+        print('StepScan contains {0} points, ranging from {1} to {2} ps.'.format(len(timescale),
+                                                                                 timescale[0],
+                                                                                 timescale[-1]))
+
+    @QtCore.pyqtSlot()
+    def acceptSettings(self):
+        self.set_scan_settings.emit(self.scan_settings)
 
 
-
-
-
-
-class PlotAreaWidget(QtWidgets.QWidget):
+class ScanAreaWidget(QtWidgets.QWidget):
     """ Widget where plots will be represented.
 
     TODO: add signals and slots.
     """
-    def __init__(self):
-        super(PlotAreaWidget, self).__init__()
-        self.setupUI()
 
+    def __init__(self):
+        super(ScanAreaWidget, self).__init__()
+
+        self.scan_settings = {}
         self.parameters = None
 
+        self.setupUI()
 
     def setupUI(self):
-        self.setObjectName('Plot Widget Area')
-        self.setMinimumSize(640,480)
+        self.setObjectName('Scan Widget Area')
+        self.setMinimumSize(640, 480)
         self.master_layout = QtWidgets.QGridLayout(self)
-        self.plot_area = pg.PlotWidget()
+        self.scan_area = pg.PlotWidget()
         self.parameter_tree = ParameterTree()
-
-        self.master_layout.addWidget(self.plot_area, 0, 1)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
+        self.parameter_tree.setSizePolicy(sizePolicy)
+        self.master_layout.addWidget(self.scan_area, 0, 0)
         # self.setSizePolicy(sizePolicy)
-        self.master_layout.addWidget(self.parameter_tree, 0, 0)
+        self.master_layout.addWidget(self.parameter_tree, 0, 1)
+
+        self.start_scan_button = QtWidgets.QPushButton('Start Scan')
+        self.start_scan_button.setEnabled(False)
+        self.master_layout.addWidget(self.start_scan_button)
 
         self.setLayout(self.master_layout)
+
+    @QtCore.pyqtSlot(dict)
+    def acceptScanSettings(self, settings):
+        self.scan_settings = settings
+        self.start_scan_button.setEnabled(True)
+        print(settings)
 
 
 class DockInstrumentMonitor(QtWidgets.QDockWidget, QtWidgets.QWidget):
@@ -266,6 +329,11 @@ class DockInstrumentMonitor(QtWidgets.QDockWidget, QtWidgets.QWidget):
 
         self.ui = Ui_Ui_InstrumentsMonitor()
         self.ui.setupUi(self)
+
+
+class Processor(QtCore.QObject):
+    def __init__(self):
+        super(Processor, self).__init__()
 
 
 def my_exception_hook(exctype, value, traceback):
