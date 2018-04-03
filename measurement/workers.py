@@ -27,17 +27,15 @@ class Worker(QtCore.QObject):
         perform a measurement.
 
     signals emitted:
-
-    finished:
-        at end of the scan, emits the results stored over the whole scan.
-    newData:
-        emitted at each measurement point. Usually contains a dictionary with
-        the last measured values toghether with scan progress information.
-
+        finished (dict): at end of the scan, emits the results stored over the whole scan.
+        newData (dict): emitted at each measurement point. Usually contains a dictionary with the last measured values
+            toghether with scan progress information.
+        state (str): emitted when state of the worker changes. Allowed values of state are defined in STATE_VALUES.
     """
 
     finished = QtCore.pyqtSignal(dict)
     newData = QtCore.pyqtSignal(dict)
+    STATE_VALUES = ['loading', 'idle', 'running', 'error']
 
     def __init__(self, settings, instruments):
         super(Worker, self).__init__()
@@ -49,7 +47,7 @@ class Worker(QtCore.QObject):
 
         # Flags
         self.shouldStop = False  # soft stop, for interrupting at end of cycle.
-        self.statusFlag = 'none'
+        self.state = 'none'
 
         self.requiredInstruments = []  # fill list with names of instruments required for (sub)class
         self.requiredSettings = []  # fill list with names of settings required for (sub)class
@@ -106,12 +104,25 @@ class Worker(QtCore.QObject):
                 raise_Qerror('killing {}'.format(instrument), e, popup=False)
 
     @property
-    def statusFlag(self):
-        return self.statusFlag
+    def state(self):
+        """ Get the current worker state:
 
-    @statusFlag.setter
-    def statusFlag(self, value):
-        self.statusFlag = value
+        Allowed States:
+            loading: worker is setting up initial conditions.
+            idle: ready to run, awaiting starting condition.
+            running: obvious.
+            error: worker stuck because of error or something.
+        """
+        return self.state
+
+    @state.setter
+    def state(self, value):
+        """ set new state flag.
+
+        Sets a new state, emits a signal with the changed state value.
+        """
+        assert value in self.STATE_VALUES, 'invalid status: {}'.format(value)
+        self.state = value
         self.valueChanged.emit(value)
 
     # def set_status(self,statusString):
@@ -130,8 +141,6 @@ class Worker(QtCore.QObject):
         For hard stop, use kill_worker slot.
         """
         self.shouldStop = flag
-
-
 
 
 if __name__ == "__main__":

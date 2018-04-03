@@ -6,6 +6,7 @@
 from PyQt5 import QtCore
 from measurement.workers import Worker
 from utils.utils import raise_Qerror
+import time
 
 def main():
     pass
@@ -14,13 +15,14 @@ def main():
 class StepScanWorker(Worker):
     """ Subclass of Worker, designed to perform step scan measurements.
 
-    **Signals Emitted**
 
-    finished:
-        at end of the scan, emits the results stored over the whole scan.
-    newData:
-        emitted at each measurement point. Usually contains a dictionary with the last measured values toghether with scan progress information.
-    **Input required**:
+
+    Signals Emitted:
+
+    finished (dict): at end of the scan, emits the results stored over the whole scan.
+    newData (dict): emitted at each measurement point. Usually contains a dictionary with the last measured values toghether with scan progress information.
+
+    **Experiment Input required**:
 
     settings:
         stagePositions, lockinParametersToRead, dwelltime, numberOfScans
@@ -32,12 +34,12 @@ class StepScanWorker(Worker):
     def __init__(self, settings, instruments):
         super(StepScanWorker, self).__init__(settings, instruments)
 
-        self.statusFlag = 'loading'
+        self.state = 'loading'
 
         self.requiredSettings = ['stagePositions', 'lockinParametersToRead', 'dwelltime', 'numberOfScans']
         self.requiredInstruments = ['lockin', 'stage']
 
-        self.statusFlag = 'connecting instruments'
+        self.state = 'connecting instruments'
         self.initialize_instruments()
         #
         # for instrument, value in instruments.items():
@@ -47,7 +49,7 @@ class StepScanWorker(Worker):
         #     inst_string = str(instrument).lower().replace('-','')
         #     setattr(self, inst_string, value)
 
-        self.statusFlag = 'idle'
+        self.state = 'idle'
 
     def work(self):
         """ Step Scan specific work procedure.
@@ -56,7 +58,7 @@ class StepScanWorker(Worker):
         for the dwelltime, and finally records the values contained in lockinParameters from the Lock-in amplifier.
         """
         print('worker scanning')
-        self.statusFlag = 'scanning'
+        self.state = 'scanning'
         pointsPerScan = len(self.stagePositions)
         j=0
         while j < self.numberOfScans:
@@ -68,6 +70,7 @@ class StepScanWorker(Worker):
                 time.sleep(self.dwelltime)  # wait for the lock-in value to saturate
                 # read data and add scan status information to the output dictionary.
                 newDataDict = self.lockin.readSnap(self.lockinParametersToRead)
+                # TODO: implement stage position readout
                 newDataDict['stagePosition'] = pos
                 # append data to results dataset
                 for key, val in newDataDict.items():
@@ -83,10 +86,10 @@ class StepScanWorker(Worker):
                     self.kill_worker()
 
         self.finished.emit(self.result)
-        self.statusFlag = 'complete'
+        self.state = 'complete'
 
     @QtCore.pyqtSlot(int)
-    def set_numberOfScans(self, new_numberOfScans):
+    def set_number_of_scans(self, new_numberOfScans):
         self.set_numberOfScans = new_numberOfScans
 
 if __name__ == '__main__':
